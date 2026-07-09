@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>safebox Gate Console</title>
+<style>
+  :root{--bg:#0a0f1e;--panel:#111a30;--line:rgba(255,255,255,.09);--tx:#e8edf6;--mut:#8b97ad;--accent:#3362ff;--ok:#37d39b;--danger:#ff5c72;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;--sans:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+  *{box-sizing:border-box}body{margin:0;background:radial-gradient(1100px 500px at 75% -10%,#16224a,var(--bg) 55%);color:var(--tx);font-family:var(--sans)}
+  header{padding:20px 28px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px}
+  .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#4b7bff,#2b56e6);display:grid;place-items:center;font-size:16px}
+  header h1{font-size:19px;margin:0;letter-spacing:-.01em}
+  header .sub{color:var(--mut);font-size:13px;margin-left:4px}
+  .live{margin-left:auto;display:flex;align-items:center;gap:7px;color:var(--ok);font-size:13px;font-weight:600}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(55,211,155,.6);animation:p 1.6s infinite}
+  @keyframes p{0%{box-shadow:0 0 0 0 rgba(55,211,155,.5)}70%{box-shadow:0 0 0 8px rgba(55,211,155,0)}100%{box-shadow:0 0 0 0 rgba(55,211,155,0)}}
+  .wrap{display:grid;grid-template-columns:300px 1fr;gap:18px;padding:22px 28px;max-width:1200px;margin:0 auto}
+  @media(max-width:800px){.wrap{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .card h2{font-size:13px;color:var(--mut);margin:0 0 12px;letter-spacing:.05em;text-transform:uppercase}
+  .cred{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;border:1px solid var(--line);margin-bottom:8px;font-size:14px}
+  .cred .i{width:26px;height:26px;border-radius:6px;background:#1b2540;display:grid;place-items:center;font-size:13px}
+  .feed{display:flex;flex-direction:column;gap:8px;max-height:70vh;overflow:auto}
+  .row{display:grid;grid-template-columns:78px 1fr auto;gap:12px;align-items:center;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#0e1526;animation:in .3s ease}
+  @keyframes in{from{opacity:0;transform:translateY(-6px)}to{opacity:1}}
+  .row .t{font-family:var(--mono);font-size:11.5px;color:var(--mut)}
+  .row .m b{color:#cdd8ef}.row .m{font-size:13.5px}
+  .row .m .agent{color:#9db6ff;font-weight:700}
+  .row .m .tgt{color:var(--mut);font-family:var(--mono);font-size:12px}
+  .pill{font-size:12px;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  .ok{color:#9df0cf;background:rgba(55,211,155,.14)}.err{color:#ffb3bf;background:rgba(255,92,114,.14)}
+  .note{grid-column:1/-1;color:var(--mut);font-size:12px}
+  .badge{display:inline-block;margin-top:2px;font-size:11px;color:#9df0cf;background:rgba(55,211,155,.12);padding:2px 8px;border-radius:999px}
+  .empty{color:var(--mut);font-size:13px;padding:20px;text-align:center}
+</style></head>
+<body>
+<header>
+  <div class="logo">🛡️</div>
+  <h1>safebox Gate Console</h1><span class="sub">AI 접근 실시간 감사 · 비밀 미노출</span>
+  <span class="live"><span class="dot"></span>LIVE</span>
+</header>
+<div class="wrap">
+  <div class="card">
+    <h2>보관된 자격증명</h2>
+    <div id="creds"><div class="empty">불러오는 중…</div></div>
+    <div class="badge">🔒 값은 서버도 못 봄(제로지식)</div>
+  </div>
+  <div class="card">
+    <h2>실시간 접근 기록 — 어떤 계정의 AI가 · 어떤 리소스에 접근했나</h2>
+    <div id="feed" class="feed"><div class="empty">아직 접근 없음 — AI가 자격증명을 사용하면 여기에 표시됩니다.</div></div>
+    <div style="margin-top:12px;color:#6b7791;font-size:11.5px">※ 게이트(브로커) 활동 실시간 뷰입니다. 위변조 방지된 권위 감사는 서버측(safebox 접근 로그 + AWS CloudTrail 수집)에 두는 것이 정석 — 로드맵.</div>
+  </div>
+</div>
+<script>
+  fetch("/api/credentials").then(r=>r.json()).then(list=>{
+    const el=document.getElementById("creds");
+    if(!Array.isArray(list)){el.innerHTML='<div class="empty">목록 로드 실패</div>';return;}
+    el.innerHTML=list.map(c=>`<div class="cred"><span class="i">${c.icon==="globe"?"🌐":"🔑"}</span>${c.title}</div>`).join("");
+  }).catch(()=>{document.getElementById("creds").innerHTML='<div class="empty">목록 로드 실패</div>';});
+
+  const feed=document.getElementById("feed");let first=true;
+  const es=new EventSource("/events");
+  es.onmessage=(e)=>{
+    let a;try{a=JSON.parse(e.data)}catch{return}
+    if(first){feed.innerHTML="";first=false;}
+    const t=(a.ts||"").slice(11,19);
+    const isErr=(a.result||"").includes("실패");
+    const row=document.createElement("div");row.className="row";
+    row.innerHTML=`<div class="t">${t}</div><div class="m">리소스 <b>${a.resource||"-"}</b> 접근<br><span style="color:#8b97ad">${a.account||"?"} <span class="agent">(${a.agent||"AI"})</span></span></div><div class="pill ${isErr?"err":"ok"}">${a.result||"ok"}</div>`;
+    feed.prepend(row);
+  };
+</script>
+</body></html>

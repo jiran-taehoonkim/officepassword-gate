@@ -1,0 +1,19 @@
+node_modules/
+gate_state.json
+gate-audit.log
+*.log
+.env
+.DS_Store
+
+# 검증/디버그 스크립트 (하드코딩 값 포함 가능 — 공개 제외, 제품 코드 아님)
+test*.mjs
+debug_*.mjs
+probe.mjs
+listprobe.mjs
+resolve_test.mjs
+inspect_*.mjs
+discover_lg.mjs
+client.mjs
+client_aws.mjs
+client_demo.mjs
+bench.mjs
