@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OfficePassword 게이트 · 인터랙티브 데모</title>
+<style>
+  :root{
+    --bg:#0a0f1e; --panel:#111a30; --panel2:#0e1526;
+    --line:rgba(255,255,255,.08); --tx:#e8edf6; --mut:#8b97ad;
+    --accent:#3362ff; --danger:#ff5c72; --ok:#37d39b;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  html{background:#0a0f1e}
+  body{background:radial-gradient(1000px 500px at 75% -10%,#16224a 0,var(--bg) 55%);
+       color:var(--tx);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;padding:18px}
+  .app{max-width:1040px;margin:0 auto}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#4b7bff,#2b56e6);display:grid;place-items:center;font-size:16px}
+  header h1{font-size:17px;margin:0;letter-spacing:-.01em}
+  header .sub{color:var(--mut);font-size:12.5px}
+  .badge{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#9df0cf;background:rgba(55,211,155,.12);
+         border:1px solid rgba(55,211,155,.30);padding:4px 10px;border-radius:999px;font-weight:700}
+  .spacer{margin-left:auto}
+  .btn{cursor:pointer;font:inherit;font-size:13px;font-weight:700;color:#dfe7f7;background:#1b2540;
+       border:1px solid var(--line);border-radius:9px;padding:8px 14px;transition:.15s}
+  .btn:hover{background:#233158;border-color:rgba(120,150,255,.4)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;min-height:340px}
+  .card h2{font-size:12px;color:var(--mut);margin:0 0 12px;letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(55,211,155,.6);animation:p 1.6s infinite}
+  @keyframes p{0%{box-shadow:0 0 0 0 rgba(55,211,155,.5)}70%{box-shadow:0 0 0 7px rgba(55,211,155,0)}100%{box-shadow:0 0 0 0 rgba(55,211,155,0)}}
+  .chat{display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:94%;padding:10px 13px;border-radius:12px;font-size:13.5px;opacity:0;transform:translateY(8px);animation:in .35s forwards}
+  @keyframes in{to{opacity:1;transform:none}}
+  .u{align-self:flex-end;background:#22345f;border:1px solid rgba(120,150,255,.25)}
+  .a{align-self:flex-start;background:#0f1830;border:1px solid var(--line)}
+  .g{align-self:flex-start;background:rgba(51,98,255,.10);border:1px solid rgba(51,98,255,.30);font-family:var(--mono);font-size:12.5px}
+  .who{font-size:10.5px;color:var(--mut);margin-bottom:3px;letter-spacing:.02em}
+  .mask{color:#9df0cf;background:rgba(55,211,155,.12);border-radius:4px;padding:1px 6px;letter-spacing:1px;font-family:var(--mono)}
+  .leak{color:#ff8b9c}
+  .feed{display:flex;flex-direction:column;gap:8px}
+  .row{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);
+       border-radius:10px;background:#0e1526;opacity:0;transform:translateY(-6px);animation:in .3s forwards}
+  .row .t{font-family:var(--mono);font-size:11px;color:var(--mut)}
+  .row .m{font-size:13px}
+  .row .m b{color:#eaf0ff}
+  .row .m .meta{color:#8b97ad;font-size:11.5px}
+  .row .m .ag{color:#9db6ff;font-weight:700}
+  .pill{font-size:11.5px;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap;color:#9df0cf;background:rgba(55,211,155,.14)}
+  .empty{color:var(--mut);font-size:12.5px;padding:26px 8px;text-align:center}
+  .note{margin-top:12px;color:var(--mut);font-size:11.5px;text-align:center}
+  .note b{color:#bcd0ff}
+  .status{color:#9db6ff;font-size:12px;font-family:var(--mono);min-height:18px;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">🛡️</div>
+    <div>
+      <h1>OfficePassword 안전 접근 게이트</h1>
+      <div class="sub">AI가 비밀을 몰라도, 비밀을 쓰게 한다 — 인터랙티브 데모</div>
+    </div>
+    <span class="spacer"></span>
+    <span class="badge">🔒 비밀 미노출</span>
+    <button class="btn" id="replay">▶ 다시 재생</button>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h2>① AI 대화 (Claude Code)</h2>
+      <div class="chat" id="chat"></div>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="card">
+      <h2><span class="dot"></span> ② 실시간 감사 기록</h2>
+      <div class="feed" id="feed"><div class="empty" id="empty">AI가 자격증명을 사용하면 여기에 기록이 쌓입니다.</div></div>
+    </div>
+  </div>
+
+  <p class="note">※ 실제 데모를 재현한 <b>시뮬레이션</b>입니다(백엔드·실제 비밀 없이 동작). 실제 작동은 라이브로 검증되었습니다.</p>
+</div>
+
+<script>
+(function(){
+  var chat = document.getElementById('chat');
+  var feed = document.getElementById('feed');
+  var empty = document.getElementById('empty');
+  var status = document.getElementById('status');
+  var timers = [];
+  function at(ms, fn){ timers.push(setTimeout(fn, ms)); }
+  function clearAll(){ timers.forEach(clearTimeout); timers = []; }
+
+  function bubble(cls, who, html){
+    var d = document.createElement('div');
+    d.className = 'msg ' + cls;
+    d.innerHTML = '<div class="who">'+who+'</div>'+html;
+    chat.appendChild(d);
+    d.scrollIntoView({block:'nearest'});
+  }
+  function auditRow(time, agent, resource, type, result){
+    if(empty && empty.parentNode){ empty.parentNode.removeChild(empty); empty = null; }
+    var d = document.createElement('div');
+    d.className = 'row';
+    d.innerHTML = '<div class="t">'+time+'</div>'+
+      '<div class="m">리소스 <b>'+resource+'</b> 접근<br>'+
+      '<span class="meta">karina@officemail.app · <span class="ag">'+agent+'</span> · '+type+'</span></div>'+
+      '<div class="pill">'+result+'</div>';
+    feed.insertBefore(d, feed.firstChild);
+  }
+  function setStatus(t){ status.textContent = t; }
+
+  function run(){
+    clearAll();
+    chat.innerHTML = '';
+    feed.innerHTML = '<div class="empty" id="empty">AI가 자격증명을 사용하면 여기에 기록이 쌓입니다.</div>';
+    empty = document.getElementById('empty');
+    setStatus('');
+
+    at(200,  function(){ bubble('u','사용자','OfficePassword의 AWS 자격증명으로 <b>officemail-dev</b> 로그를 최근 10분 분석해줘'); });
+    at(1100, function(){ setStatus('게이트: 자격증명 복호화 중… (사용자 기기에서 순간)'); });
+    at(2100, function(){ bubble('g','OfficePassword 게이트','AI에 전달되는 값 → secret: <span class="mask">•••••••• 기기에서만 순간 복호화</span>'); });
+    at(2600, function(){ setStatus('게이트: AWS CloudWatch 호출 중… (AI는 키를 못 봄)'); });
+    at(3600, function(){ auditRow('17:13:14','Claude Code','officemail-dev','AWS 자격증명','성공 · 로그 300건'); setStatus('게이트: 완료 — 결과만 AI에 반환'); });
+    at(4200, function(){ bubble('a','AI','게이트로 조회했습니다(값은 제가 못 봅니다). 최근 오류 <b>3건</b> 발견 — 결과만 표시합니다.'); });
+    at(5200, function(){ bubble('u','사용자','방금 쓴 AWS 키가 뭐였어?'); });
+    at(6100, function(){ bubble('a','AI','저는 그 값을 <b>본 적이 없어</b> 알려드릴 수 없습니다.'); setStatus('✔ 대화·로그 어디에도 비밀 값이 남지 않음'); });
+    at(9500, run); // loop
+  }
+
+  document.getElementById('replay').addEventListener('click', run);
+  run();
+})();
+</script>
+</body>
+</html>
